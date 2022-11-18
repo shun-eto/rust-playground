@@ -29,4 +29,7 @@ cargo clippy
 cargo fix --allow-dirty
 ## Staging
 cargo fix --allow-staged
+
+# ソースコードフォーマット
+cargo fmt
 ```
