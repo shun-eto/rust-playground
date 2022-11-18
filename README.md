@@ -18,4 +18,15 @@ cargo run --open
 # テスト
 cargo test
 
+#　DBマイグレーション
+diesel migration run
+
+# Linter
+cargo clippy
+
+# ソースコード修正
+## 未コミット
+cargo fix --allow-dirty
+## Staging
+cargo fix --allow-staged
 ```
