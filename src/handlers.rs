@@ -1,6 +1,6 @@
-use crate::repositories::CreateTodo;
+use crate::repositories::{CreateTodo, UpdateTodo};
 use crate::TodoRepository;
-use axum::extract::Extension;
+use axum::extract::{Extension, Path};
 use axum::response::IntoResponse;
 use axum::Json;
 use hyper::StatusCode;
@@ -10,10 +10,13 @@ use std::sync::Arc;
 pub async fn create_todo<T: TodoRepository>(
     Json(payload): Json<CreateTodo>,
     Extension(todo_repository): Extension<Arc<T>>,
-) -> impl IntoResponse {
-    let todo = todo_repository.create(payload);
+) -> Result<impl IntoResponse, StatusCode> {
+    let todo = todo_repository
+        .create(payload)
+        .await
+        .or(Err(StatusCode::NOT_FOUND))?;
 
-    return (StatusCode::CREATED, Json(todo));
+    return Ok((StatusCode::CREATED, Json(todo)));
 }
 
 pub async fn root() -> &'static str {
@@ -38,6 +41,45 @@ pub async fn create_user(Json(payload): Json<CreateUser>) -> impl IntoResponse {
     };
 
     return (StatusCode::CREATED, Json(user));
+}
+
+pub async fn find_todo<T: TodoRepository>(
+    Path(id): Path<i32>,
+    Extension(repository): Extension<Arc<T>>,
+) -> Result<impl IntoResponse, StatusCode> {
+    let todo = repository.find(id).await.or(Err(StatusCode::NOT_FOUND))?;
+    return Ok((StatusCode::OK, Json(todo)));
+}
+
+pub async fn all_todos<T: TodoRepository>(
+    Extension(repository): Extension<Arc<T>>,
+) -> impl IntoResponse {
+    let todos = repository.all().await.unwrap();
+    return (StatusCode::OK, Json(todos));
+}
+
+pub async fn update_todo<T: TodoRepository>(
+    Path(id): Path<i32>,
+    Json(payload): Json<UpdateTodo>,
+    Extension(repository): Extension<Arc<T>>,
+) -> Result<impl IntoResponse, StatusCode> {
+    let todo = repository
+        .update(id, payload)
+        .await
+        .or(Err(StatusCode::NOT_FOUND))?;
+
+    return Ok((StatusCode::CREATED, Json(todo)));
+}
+
+pub async fn delete_todo<T: TodoRepository>(
+    Path(id): Path<i32>,
+    Extension(repository): Extension<Arc<T>>,
+) -> StatusCode {
+    repository
+        .delete(id)
+        .await
+        .map(|_| StatusCode::NO_CONTENT) //  コンテンツの削除に成功
+        .unwrap_or(StatusCode::NOT_FOUND) //  コンテンツが見つからない
 }
 
 #[cfg(test)]
